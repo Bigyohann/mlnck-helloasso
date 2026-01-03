@@ -1,9 +1,11 @@
+// Package helloasso provides a client for the HelloAsso API.
 package helloasso
 
 import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -43,7 +45,7 @@ type ListResponse[T any] struct {
 type Form struct {
 	Banner struct {
 		FileName  string `json:"fileName"`
-		PublicUrl string `json:"publicUrl"`
+		PublicURL string `json:"publicUrl"`
 	} `json:"banner"`
 	Currency    string `json:"currency"`
 	Description string `json:"description"`
@@ -55,13 +57,13 @@ type Form struct {
 	} `json:"meta"`
 	State                       string `json:"-"`
 	Title                       string `json:"title"`
-	WidgetButtonUrl             string `json:"-"`
-	WidgetFullUrl               string `json:"-"`
-	WidgetVignetteHorizontalUrl string `json:"-"`
-	WidgetVignetteVerticalUrl   string `json:"-"`
+	WidgetButtonURL             string `json:"-"`
+	WidgetFullURL               string `json:"-"`
+	WidgetVignetteHorizontalURL string `json:"-"`
+	WidgetVignetteVerticalURL   string `json:"-"`
 	FormSlug                    string `json:"formSlug"`
 	FormType                    string `json:"-"`
-	Url                         string `json:"url"`
+	URL                         string `json:"url"`
 	OrganizationSlug            string `json:"-"`
 }
 
@@ -76,7 +78,13 @@ func login() error {
 		return err
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		err := resp.Body.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("Error reading response body:", err)
@@ -104,7 +112,10 @@ func GetForms() ([]Form, error) {
 		return formsCache, nil
 	}
 
-	login()
+	err := login()
+	if err != nil {
+		return nil, err
+	}
 	req, err := http.NewRequest(
 		"GET",
 		"https://api.helloasso.com/v5/organizations/"+os.Getenv("ORGANIZATION")+"/forms?states=Public",
@@ -123,7 +134,13 @@ func GetForms() ([]Form, error) {
 		fmt.Println("Error sending request:", err)
 		return nil, err
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		err := resp.Body.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

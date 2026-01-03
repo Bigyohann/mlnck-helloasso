@@ -1,8 +1,10 @@
+// Package api contains the handlers for the API
 package api
 
 import (
-	"mlnck/pkg/helloasso"
 	"net/http"
+
+	"mlnck/pkg/helloasso"
 
 	"github.com/gin-gonic/gin"
 )
