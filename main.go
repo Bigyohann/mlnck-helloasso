@@ -1,8 +1,9 @@
 package main
 
 import (
-	"mlnck/api"
 	"time"
+
+	"mlnck/api"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -11,15 +12,13 @@ import (
 	"golang.org/x/time/rate"
 )
 
-var token string
-
 func main() {
-	godotenv.Load(".env" + ".local")
-	godotenv.Load()
+	_ = godotenv.Load(".env" + ".local")
+	_ = godotenv.Load()
 
 	r := gin.Default()
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"https://mlnck.fr", "http://localhost:8888"},
+		AllowOrigins:     []string{"https://mlnck.fr"},
 		AllowMethods:     []string{"GET"},
 		AllowHeaders:     []string{"Origin"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -32,11 +31,11 @@ func main() {
 		return rate.NewLimiter(
 			rate.Every(100*time.Millisecond),
 			10,
-		), time.Hour // limit 10 qps/clientIp and permit bursts of at most 10 tokens, and the limiter liveness time duration is 1 hour
+		), time.Hour
 	}, func(c *gin.Context) {
-		c.AbortWithStatus(429) // handle exceed rate limit request
+		c.AbortWithStatus(429)
 	}))
 
 	r.GET("/forms", api.GetFormsHandler)
-	r.Run()
+	_ = r.Run()
 }
