@@ -1,5 +1,8 @@
 # 🔗 HelloAsso Events API (Go) — MLNCK
 
+[![codecov](https://codecov.io/gh/Bigyohann/mlnck-helloasso/graph/badge.svg?token=JRd1UWxiGr)](https://codecov.io/gh/Bigyohann/mlnck-helloasso)
+[![Tests](https://github.com/Bigyohann/mlnck-helloasso/actions/workflows/test.yml/badge.svg)](https://github.com/Bigyohann/mlnck-helloasso/actions/workflows/test.yml)
+
 Une petite API en **Go** pour connecter le site [mlnck.fr](https://mlnck.fr) à [HelloAsso](https://www.helloasso.com/), et exposer les **prochains événements publics**.
 
 ---
