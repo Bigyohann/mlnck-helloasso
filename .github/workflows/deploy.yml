@@ -28,7 +28,7 @@ jobs:
           context: .
           push: true
           tags: |
-            hub.yohannbiglia.fr/mlnck-api:latest
-            hub.yohannbiglia.fr/mlnck-api:${{ github.event.release.tag_name }}
-          cache-from: type=registry,ref=hub.yohannbiglia.fr/mlnck-api:buildcache
+            hub.yohannbiglia.fr/mlnck/api:latest
+            hub.yohannbiglia.fr/mlnck/api:${{ github.event.release.tag_name }}
+          cache-from: type=registry,ref=hub.yohannbiglia.fr/mlnck/api:buildcache
           cache-to: type=inline
