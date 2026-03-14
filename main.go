@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -23,6 +24,10 @@ func main() {
 	allowedOrigins := strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
 	if len(allowedOrigins) == 1 && allowedOrigins[0] == "" {
 		allowedOrigins = []string{"https://mlnck.fr"}
+	}
+
+	for _, origin := range allowedOrigins {
+		log.Println("Allowed origin:", origin)
 	}
 
 	r.Use(cors.New(cors.Config{
