@@ -17,7 +17,7 @@ func SetupRouter() *gin.Engine {
 
 	allowedOrigins := strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
 	if len(allowedOrigins) == 1 && allowedOrigins[0] == "" {
-		allowedOrigins = []string{"https://mlnck.fr"}
+		allowedOrigins = []string{"*"}
 	}
 
 	for _, origin := range allowedOrigins {

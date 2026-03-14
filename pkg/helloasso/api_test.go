@@ -231,7 +231,7 @@ func TestSetDefaultClient(t *testing.T) {
 }
 
 func TestGetForms_Integration(t *testing.T) {
-	if defaultClient == nil {
+	if getDefaultClient() == nil {
 		t.Fatal("Default client should be initialized")
 	}
 	// Test the public wrapper

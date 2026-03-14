@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"sync"
 	"time"
 )
 
@@ -105,7 +106,19 @@ func (c *Client) GetForms() ([]Form, error) {
 }
 
 // Global default client for compatibility
-var defaultClient = NewClient()
+var (
+	defaultClient     *Client
+	defaultClientOnce sync.Once
+)
+
+func getDefaultClient() *Client {
+	defaultClientOnce.Do(func() {
+		if defaultClient == nil {
+			defaultClient = NewClient()
+		}
+	})
+	return defaultClient
+}
 
 // SetDefaultClient sets the global default client (used for testing)
 func SetDefaultClient(c *Client) {
@@ -113,7 +126,7 @@ func SetDefaultClient(c *Client) {
 }
 
 func GetForms() ([]Form, error) {
-	return defaultClient.GetForms()
+	return getDefaultClient().GetForms()
 }
 
 type LoginResponse struct {
