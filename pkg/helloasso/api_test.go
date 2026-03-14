@@ -183,6 +183,53 @@ func TestClient_GetForms_RequestError(t *testing.T) {
 	}
 }
 
+func TestClient_GetForms_LoginError(t *testing.T) {
+	client := &Client{
+		BaseURL:    " http://invalid",
+		HTTPClient: http.DefaultClient,
+	}
+	_, err := client.GetForms()
+	if err == nil {
+		t.Fatal("Expected error when login fails, got nil")
+	}
+}
+
+func TestClient_Login_NetworkError(t *testing.T) {
+	client := &Client{
+		BaseURL:    "http://localhost:1", // Should fail to connect
+		HTTPClient: http.DefaultClient,
+	}
+	err := client.login()
+	if err == nil {
+		t.Fatal("Expected network error, got nil")
+	}
+}
+
+func TestClient_GetForms_NetworkError(t *testing.T) {
+	client := &Client{
+		BaseURL:    "http://localhost:1",
+		HTTPClient: http.DefaultClient,
+		token:      "token",
+		tokenExpiry: time.Now().Add(time.Hour),
+	}
+	_, err := client.GetForms()
+	if err == nil {
+		t.Fatal("Expected network error, got nil")
+	}
+}
+
+
+func TestSetDefaultClient(t *testing.T) {
+	oldClient := defaultClient
+	defer func() { defaultClient = oldClient }()
+
+	newClient := &Client{BaseURL: "http://new-client"}
+	SetDefaultClient(newClient)
+	if defaultClient != newClient {
+		t.Errorf("Expected defaultClient to be updated to newClient")
+	}
+}
+
 func TestGetForms_Integration(t *testing.T) {
 	if defaultClient == nil {
 		t.Fatal("Default client should be initialized")

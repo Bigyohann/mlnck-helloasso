@@ -18,12 +18,14 @@ jobs:
 
       - name: Run Tests
         run: |
-          go test -v -coverprofile=coverage.txt ./...
+          go install github.com/boumenot/gocover-cobertura@latest
+          go test -v ./api/... ./pkg/... -coverprofile=coverage.txt -covermode count
+          $(go env GOPATH)/bin/gocover-cobertura < coverage.txt > coverage.xml
           go tool cover -func=coverage.txt
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
-          file: ./coverage.txt
+          file: ./coverage.xml
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}

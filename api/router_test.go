@@ -1,4 +1,4 @@
-package main
+package api
 
 import (
 	"encoding/json"
@@ -81,5 +81,3 @@ func TestSetupRouter(t *testing.T) {
 		}
 	})
 }
-
-
