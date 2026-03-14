@@ -19,6 +19,11 @@ func main() {
 	_ = godotenv.Load(".env" + ".local")
 	_ = godotenv.Load()
 
+	r := SetupRouter()
+	_ = r.Run()
+}
+
+func SetupRouter() *gin.Engine {
 	r := gin.Default()
 
 	allowedOrigins := strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
@@ -58,5 +63,6 @@ func main() {
 
 	r.GET("/forms", api.GetFormsHandler)
 	r.GET("/proxy-image", api.ProxyImageHandler)
-	_ = r.Run()
+
+	return r
 }

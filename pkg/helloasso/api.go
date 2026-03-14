@@ -5,23 +5,115 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"time"
 )
 
-var (
+type Client struct {
+	BaseURL      string
+	ClientID     string
+	ClientSecret string
+	Organization string
+	HTTPClient   *http.Client
 	token        string
+	tokenExpiry  time.Time
 	formsCache   []Form
 	formsCacheTS int64
-)
+}
 
-func addRequestHeaders(req *http.Request, token string) {
+func NewClient() *Client {
+	return &Client{
+		BaseURL:      "https://api.helloasso.com",
+		ClientID:     os.Getenv("CLIENT_ID"),
+		ClientSecret: os.Getenv("CLIENT_SECRET"),
+		Organization: os.Getenv("ORGANIZATION"),
+		HTTPClient: &http.Client{
+			Timeout: 10 * time.Second,
+		},
+	}
+}
+
+func (c *Client) login() error {
+	if c.token != "" && time.Now().Before(c.tokenExpiry) {
+		return nil
+	}
+
+	resp, err := c.HTTPClient.PostForm(c.BaseURL+"/oauth2/token", url.Values{
+		"grant_type":    {"client_credentials"},
+		"client_id":     {c.ClientID},
+		"client_secret": {c.ClientSecret},
+	})
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("login failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var res LoginResponse
+	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
+		return err
+	}
+
+	c.token = res.AccessToken
+	c.tokenExpiry = time.Now().Add(time.Duration(res.ExpiresIn) * time.Second)
+	return nil
+}
+
+func (c *Client) GetForms() ([]Form, error) {
+	now := time.Now().Unix()
+	if c.formsCache != nil && now-c.formsCacheTS < 60*10 {
+		return c.formsCache, nil
+	}
+
+	if err := c.login(); err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/v5/organizations/%s/forms?states=Public", c.BaseURL, c.Organization), nil)
+	if err != nil {
+		return nil, err
+	}
+
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Authorization", "Bearer "+c.token)
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("failed to get forms with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var res ListResponse[Form]
+	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
+		return nil, err
+	}
+
+	c.formsCache = res.Data
+	c.formsCacheTS = now
+	return res.Data, nil
+}
+
+// Global default client for compatibility
+var defaultClient = NewClient()
+
+// SetDefaultClient sets the global default client (used for testing)
+func SetDefaultClient(c *Client) {
+	defaultClient = c
+}
+
+func GetForms() ([]Form, error) {
+	return defaultClient.GetForms()
 }
 
 type LoginResponse struct {
@@ -55,107 +147,7 @@ type Form struct {
 		CreatedAt string `json:"createdAt"`
 		UpdatedAt string `json:"updatedAt"`
 	} `json:"meta"`
-	State                       string `json:"-"`
-	Title                       string `json:"title"`
-	WidgetButtonURL             string `json:"-"`
-	WidgetFullURL               string `json:"-"`
-	WidgetVignetteHorizontalURL string `json:"-"`
-	WidgetVignetteVerticalURL   string `json:"-"`
-	FormSlug                    string `json:"formSlug"`
-	FormType                    string `json:"-"`
-	URL                         string `json:"url"`
-	OrganizationSlug            string `json:"-"`
-}
-
-func login() error {
-	resp, err := http.PostForm("https://api.helloasso.com/oauth2/token", url.Values{
-		"grant_type":    {"client_credentials"},
-		"client_id":     {os.Getenv("CLIENT_ID")},
-		"client_secret": {os.Getenv("CLIENT_SECRET")},
-	})
-	if err != nil {
-		fmt.Println("Error creating request:", err)
-		return err
-	}
-
-	defer func() {
-		err := resp.Body.Close()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println("Error reading response body:", err)
-		return err
-	}
-	if resp.StatusCode != http.StatusOK {
-		fmt.Println("Error: received non-200 response code:", resp.StatusCode)
-		fmt.Println("Response body:", string(body))
-		return fmt.Errorf("received non-200 response code: %d", resp.StatusCode)
-	}
-	var loginResponse LoginResponse
-	err = json.Unmarshal(body, &loginResponse)
-	if err != nil {
-		fmt.Println("Error unmarshalling response body:", err)
-		return err
-	}
-	token = loginResponse.AccessToken
-
-	return nil
-}
-
-func GetForms() ([]Form, error) {
-	now := time.Now().Unix()
-	if formsCache != nil && now-formsCacheTS < 60*10 {
-		return formsCache, nil
-	}
-
-	err := login()
-	if err != nil {
-		return nil, err
-	}
-	req, err := http.NewRequest(
-		"GET",
-		"https://api.helloasso.com/v5/organizations/"+os.Getenv("ORGANIZATION")+"/forms?states=Public",
-		nil,
-	)
-	if err != nil {
-		fmt.Println("Error creating request:", err)
-		return nil, err
-	}
-
-	addRequestHeaders(req, token)
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		fmt.Println("Error sending request:", err)
-		return nil, err
-	}
-
-	defer func() {
-		err := resp.Body.Close()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println("Error reading response body:", err)
-		return nil, err
-	}
-
-	var listResponse ListResponse[Form]
-	err = json.Unmarshal(body, &listResponse)
-	if err != nil {
-		fmt.Println("Error unmarshalling response body:", err)
-		return nil, err
-	}
-	formsCache = listResponse.Data
-	formsCacheTS = now
-
-	return listResponse.Data, nil
+	Title    string `json:"title"`
+	FormSlug string `json:"formSlug"`
+	URL      string `json:"url"`
 }
