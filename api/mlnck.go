@@ -14,6 +14,9 @@ func GetFormsHandler(c *gin.Context) {
 
 	// order forms by startDate
 	for i := range forms {
+		if forms[i].FormType == "PaymentForm" {
+			forms = append(forms[:i], forms[i+1:]...)
+		}
 		for j := i + 1; j < len(forms); j++ {
 			if forms[i].StartDate > forms[j].StartDate {
 				forms[i], forms[j] = forms[j], forms[i]

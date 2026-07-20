@@ -160,6 +160,7 @@ type Form struct {
 		CreatedAt string `json:"createdAt"`
 		UpdatedAt string `json:"updatedAt"`
 	} `json:"meta"`
+	FormType string `json:"formType"`
 	Title    string `json:"title"`
 	FormSlug string `json:"formSlug"`
 	URL      string `json:"url"`
